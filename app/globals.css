@@ -122,3 +122,48 @@
 body {
   @apply bg-background text-foreground;
 }
+
+/* Snake-themed animations */
+@keyframes snake-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes snake-slither {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateX(5px) rotate(-5deg);
+  }
+  75% {
+    transform: translateX(-5px) rotate(5deg);
+  }
+}
+
+@keyframes snake-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(234, 179, 8, 0.8));
+  }
+}
+
+.snake-rotate {
+  animation: snake-rotate 2s linear infinite;
+}
+
+.snake-slither {
+  animation: snake-slither 1s ease-in-out infinite;
+}
+
+.snake-glow {
+  animation: snake-glow 2s ease-in-out infinite;
+}

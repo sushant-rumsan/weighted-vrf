@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Dice1, TrendingUp, Sparkles } from "lucide-react";
+import { Users, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { WalletConnection } from "@/components/wallet-connection-wagmi";
 import { CONTRACT_ADDRESSES } from "@/lib/constants";
@@ -15,22 +15,21 @@ import {
   useWriteOfficeLotteryRunLottery,
 } from "@/hooks/wagmi/contracts";
 import { useWriteRandomNumberGeneratorRequestRandomNumber } from "@/hooks/wagmi/contracts";
-import { Loader2 } from "lucide-react";
 
 // Load employees from contract and convert to UI-friendly format
 const contractAddress = CONTRACT_ADDRESSES.OFFICE_LOTTERY as `0x${string}`;
 const vrfAddress = CONTRACT_ADDRESSES.VRF as `0x${string}`;
 
-// Fun facts for loading screen
-const funFacts = [
-  "Did you know? Octopuses have three hearts!",
-  "Fun fact: A group of flamingos is called a 'flamboyance'",
-  "Did you know? Bananas are berries, but strawberries aren't!",
-  "Fun fact: Honey never spoils. Archaeologists have found 3000-year-old honey that's still good!",
-  "Did you know? Sharks have been around longer than trees!",
-  "Fun fact: Your nose can remember 50,000 different scents",
-  "Did you know? A single cloud can weigh more than a million pounds!",
-  "Fun fact: Dolphins have names for each other",
+// Snake facts for loading screen
+const snakeFacts = [
+  "🐍 Snakes can open their mouths up to 150 degrees!",
+  "🐍 Some snakes can live up to 30 years in the wild",
+  "🐍 Snakes smell with their tongues using the Jacobson's organ",
+  "🐍 The world's longest snake is the reticulated python at 30+ feet",
+  "🐍 Snakes don't have eyelids - they're always watching!",
+  "🐍 Snakes shed their skin 3-6 times per year as they grow",
+  "🐍 Pythons can go for a year without eating",
+  "🐍 Snake venom is being researched for medicine and cancer treatment",
 ];
 
 export default function HomePage() {
@@ -136,7 +135,7 @@ export default function HomePage() {
       // Step 2: Show fun facts for 15 seconds
       const startTime = Date.now();
       const displayFacts = () => {
-        const fact = funFacts[Math.floor(Math.random() * funFacts.length)];
+        const fact = snakeFacts[Math.floor(Math.random() * snakeFacts.length)];
         setCurrentFact(fact);
 
         if (Date.now() - startTime < 15000) {
@@ -224,12 +223,12 @@ export default function HomePage() {
           </div>
           <div className="text-center mb-8">
             <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
-              <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                ✨ Daily Vibe Check
+              <span className="bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400 bg-clip-text text-transparent">
+                🐍 Snake Line-Up 🐍
               </span>
             </h1>
             <p className="text-white/80 font-medium">
-              who&apos;s pulling up to the office today? 💅
+              who&apos;s slithering into work today? 🐍
             </p>
           </div>
 
@@ -237,13 +236,13 @@ export default function HomePage() {
             <CardContent className="p-6">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-white" />
-                  <span className="ml-3 text-white">Loading employees...</span>
+                  <div className="text-6xl snake-rotate snake-glow">🐍</div>
+                  <span className="ml-3 text-white">Hissing around...</span>
                 </div>
               ) : employees.length === 0 ? (
                 <div className="text-center py-12">
-                  <Users className="w-12 h-12 text-white/40 mx-auto mb-4" />
-                  <p className="text-white/60">No employees found</p>
+                  <div className="text-6xl mb-4">🐍</div>
+                  <p className="text-white/60">No snakes in the nest</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -261,7 +260,7 @@ export default function HomePage() {
                       }}
                       className={`group relative p-5 rounded-2xl cursor-pointer transition-all duration-500 transform hover:scale-[1.02] ${
                         presentEmployees.has(employee.id)
-                          ? "bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-blue-500/20 border-2 border-emerald-400/60 shadow-lg shadow-emerald-400/20"
+                          ? "bg-gradient-to-r from-emerald-500/20 via-yellow-500/20 to-orange-500/20 border-2 border-emerald-400/60 shadow-lg shadow-emerald-400/20"
                           : "bg-gradient-to-r from-white/5 to-white/10 border-2 border-white/10 hover:border-white/30 hover:from-white/10 hover:to-white/15"
                       }`}
                     >
@@ -280,13 +279,15 @@ export default function HomePage() {
                             </span>
                             {presentEmployees.has(employee.id) && (
                               <div className="text-emerald-300 text-sm font-semibold animate-pulse">
-                                locked in ✨
+                                sssssslithering in 🐍
                               </div>
                             )}
                           </div>
                         </div>
                         {presentEmployees.has(employee.id) && (
-                          <div className="text-2xl animate-bounce">🔥</div>
+                          <div className="text-3xl snake-slither animate-bounce">
+                            🐍
+                          </div>
                         )}
                       </div>
                       {presentEmployees.has(employee.id) && (
@@ -306,13 +307,13 @@ export default function HomePage() {
                   <span className="flex items-center justify-center gap-3">
                     {isSettingActive ? (
                       <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Setting active...</span>
+                        <span className="text-xl animate-spin">🐍</span>
+                        <span>Snake is slithering...</span>
                       </>
                     ) : (
                       <>
-                        <span className="text-xl">🚀</span>
-                        let&apos;s gooo
+                        <span className="text-xl animate-spin">🐍</span>
+                        slither ready!
                         <span className="bg-white/20 px-3 py-1.5 rounded-full text-sm font-bold backdrop-blur-sm">
                           {presentEmployees.size}
                         </span>
@@ -339,22 +340,22 @@ export default function HomePage() {
         </div>
         <div className="text-center mb-8">
           <h1 className="text-5xl font-black text-white mb-2 animate-pulse tracking-tight">
-            <span className="bg-gradient-to-r from-yellow-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-              🎰 BILL ROULETTE
+            <span className="bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400 bg-clip-text text-transparent">
+              🐍 SNAKE BITE LOTTERY 🐍
             </span>
           </h1>
           <p className="text-white/90 text-xl font-semibold">
-            who&apos;s about to get rekt? 💸
+            who&apos;s getting bitten today? 🐍
           </p>
         </div>
 
         {previousWinner && !hasDrawnToday && (
-          <Card className="mb-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-400/50 backdrop-blur-2xl shadow-xl rounded-3xl overflow-hidden">
+          <Card className="mb-6 bg-gradient-to-br from-emerald-500/20 to-yellow-500/20 border-emerald-400/50 backdrop-blur-2xl shadow-xl rounded-3xl overflow-hidden">
             <CardContent className="p-6">
               <div className="text-center">
-                <div className="text-3xl mb-2">🎖️</div>
+                <div className="text-3xl mb-2 animate-bounce">🐍</div>
                 <div className="text-sm text-white/70 mb-1 uppercase tracking-wide">
-                  Previous Winner
+                  Previous Bite Victim
                 </div>
                 <div className="text-xl font-black text-white">
                   {previousWinner.name}
@@ -369,15 +370,15 @@ export default function HomePage() {
             <CardHeader className="text-center pb-4">
               <div className="flex justify-center mb-6">
                 {isDrawing ? (
-                  <div className="animate-spin">
-                    <Dice1 className="w-20 h-20 text-yellow-400 drop-shadow-lg" />
-                  </div>
+                  <div className="text-8xl snake-rotate snake-glow">🐍</div>
                 ) : (
-                  <Sparkles className="w-20 h-20 text-yellow-400 animate-pulse drop-shadow-lg" />
+                  <div className="text-8xl snake-slither snake-glow animate-pulse">
+                    🐍
+                  </div>
                 )}
               </div>
               <CardTitle className="text-3xl text-white font-black">
-                {isDrawing ? "🎲 SPINNING..." : "🔥 READY TO SPIN"}
+                {isDrawing ? "🐍 HISSING..." : "🐍 READY TO BITE"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
@@ -422,20 +423,18 @@ export default function HomePage() {
               <Button
                 onClick={handleLuckyDraw}
                 disabled={isDrawing || presentCount === 0}
-                className="w-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-500 hover:via-orange-600 hover:to-red-600 text-black font-black py-8 text-2xl rounded-2xl shadow-xl shadow-orange-500/30 transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100 border-0"
+                className="w-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-orange-500 hover:from-emerald-600 hover:via-yellow-600 hover:to-orange-600 text-white font-black py-8 text-2xl rounded-2xl shadow-xl shadow-emerald-500/30 transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100 border-0"
               >
-                {isDrawing ? "🎰 SPINNING..." : "🎲 SPIN THE WHEEL"}
+                {isDrawing ? "🐍 BITING..." : "🐍 RELEASE THE SNAKE!"}
               </Button>
 
               {isDrawing && (
                 <div className="text-center space-y-4 py-6">
-                  <div className="text-yellow-400 animate-pulse font-bold text-lg">
+                  <div className="text-emerald-400 animate-pulse font-bold text-lg">
                     {lotteryPhase === "requestingRandom" &&
-                      "Requesting random number... ✨"}
-                    {lotteryPhase === "waiting" &&
-                      "Generating randomness... 🎲"}
-                    {lotteryPhase === "runningLottery" &&
-                      "Running the lottery! 🎰"}
+                      "🐍 Snake hunting for randomness..."}
+                    {lotteryPhase === "waiting" && "🐍 Snake is calculating..."}
+                    {lotteryPhase === "runningLottery" && "🐍 Snake is biting!"}
                   </div>
                   {currentFact && lotteryPhase === "waiting" && (
                     <div className="bg-white/10 rounded-xl p-4 border border-white/20">
@@ -449,7 +448,7 @@ export default function HomePage() {
                       {lotteryPhase === "requestingRandom" &&
                         "Sign the transaction in MetaMask..."}
                       {lotteryPhase === "runningLottery" &&
-                        "Sign the lottery transaction..."}
+                        "Sign the snake bite transaction..."}
                     </div>
                   )}
                 </div>
@@ -457,19 +456,19 @@ export default function HomePage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="bg-gradient-to-br from-yellow-400/20 to-orange-500/20 border-yellow-400/50 backdrop-blur-2xl shadow-2xl rounded-3xl overflow-hidden">
+          <Card className="bg-gradient-to-br from-emerald-400/20 to-yellow-500/20 border-emerald-400/50 backdrop-blur-2xl shadow-2xl rounded-3xl overflow-hidden">
             <CardHeader className="text-center">
-              <div className="text-8xl mb-4 animate-bounce">🏆</div>
-              <CardTitle className="text-3xl text-yellow-400 mb-2 font-black">
-                WINNER!
+              <div className="text-8xl mb-4 animate-bounce">🐍</div>
+              <CardTitle className="text-3xl text-emerald-400 mb-2 font-black">
+                BITTEN! 🐍
               </CardTitle>
-              <div className="text-4xl font-black text-white bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+              <div className="text-4xl font-black text-white bg-gradient-to-r from-emerald-400 to-yellow-400 bg-clip-text text-transparent">
                 {currentWinner?.name ||
                   previousWinner?.name ||
-                  "Winner determined!"}
+                  "Snake has chosen!"}
               </div>
               <div className="text-white/90 mt-2 text-lg font-semibold">
-                gets the bill today! 💸
+                got the snake bite today! 🐍
               </div>
             </CardHeader>
             <CardContent>
@@ -479,9 +478,9 @@ export default function HomePage() {
                   setShowPresenceSelection(true);
                 }}
                 variant="outline"
-                className="w-full border-yellow-400/50 text-yellow-400 hover:bg-yellow-400/10 py-4 text-lg font-bold rounded-2xl"
+                className="w-full border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 py-4 text-lg font-bold rounded-2xl"
               >
-                🔄 run it back tomorrow
+                🐍 slither back tomorrow
               </Button>
             </CardContent>
           </Card>
