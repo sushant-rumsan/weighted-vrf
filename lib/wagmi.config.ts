@@ -2,11 +2,11 @@
 
 import { createConfig, http } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
-import { coinbaseWallet, injected, metaMask } from "wagmi/connectors";
+import { metaMask } from "wagmi/connectors";
 
 export const config = createConfig({
   chains: [baseSepolia],
-  connectors: [coinbaseWallet(), metaMask(), injected()],
+  connectors: [metaMask()],
   transports: {
     [baseSepolia.id]: http(
       "https://base-sepolia.g.alchemy.com/v2/T0PE-HxhWOEH0eUNTcUOFgPQJiQzL6uf"
