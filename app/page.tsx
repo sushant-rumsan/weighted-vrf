@@ -321,11 +321,11 @@ export default function HomePage() {
           <div className="text-center mb-8">
             <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
               <span className="bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400 bg-clip-text text-transparent">
-                🐍 Snake Line-Up 🐍
+                🐍 Who will pay for tea today? 🐍
               </span>
             </h1>
             <p className="text-white/80 font-medium">
-              who&apos;s slithering into work today? 🐍
+              Select who&apos;s in office today 🐍
             </p>
           </div>
 
@@ -376,7 +376,7 @@ export default function HomePage() {
                             </span>
                             {presentEmployees.has(employee.id) && (
                               <div className="text-emerald-300 text-sm font-semibold animate-pulse">
-                                sssssslithering in 🐍
+                                sssssshhhhhhh 🐍
                               </div>
                             )}
                           </div>
@@ -410,7 +410,7 @@ export default function HomePage() {
                     ) : (
                       <>
                         <span className="text-xl animate-spin">🐍</span>
-                        slither ready!
+                        Confirm presence
                         <span className="bg-white/20 px-3 py-1.5 rounded-full text-sm font-bold backdrop-blur-sm">
                           {presentEmployees.size}
                         </span>
@@ -465,7 +465,7 @@ export default function HomePage() {
             <div className="text-center mb-8">
               <h1 className="text-5xl font-black text-white mb-2 animate-pulse tracking-tight">
                 <span className="bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400 bg-clip-text text-transparent">
-                  🐍 SNAKE BITE LOTTERY 🐍
+                  🐍 VICTIM 🐍
                 </span>
               </h1>
               <p className="text-white/90 text-xl font-semibold">
@@ -479,7 +479,7 @@ export default function HomePage() {
                   <div className="text-center">
                     <div className="text-3xl mb-2 animate-bounce">🐍</div>
                     <div className="text-sm text-white/70 mb-1 uppercase tracking-wide">
-                      Previous Bite Victim
+                      Previous Victim
                     </div>
                     <div className="text-xl font-black text-white">
                       {previousWinner.name}
@@ -498,9 +498,6 @@ export default function HomePage() {
                         🐍
                       </div>
                     </div>
-                    <CardTitle className="text-3xl text-white font-black">
-                      🐍 READY TO BITE
-                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-8">
                     <div className="space-y-4">
@@ -546,7 +543,7 @@ export default function HomePage() {
                       disabled={isDrawing || presentCount === 0}
                       className="w-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-orange-500 hover:from-emerald-600 hover:via-yellow-600 hover:to-orange-600 text-white font-black py-8 text-2xl rounded-2xl shadow-xl shadow-emerald-500/30 transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100 border-0"
                     >
-                      🐍 RELEASE THE SNAKE!
+                      🐍 SELECT VICTIM!
                     </Button>
                   </CardContent>
                 </Card>
