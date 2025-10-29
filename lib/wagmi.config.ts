@@ -1,8 +1,8 @@
 "use client";
 
-import { createConfig, http, injected } from "wagmi";
+import { createConfig, http } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
-import { coinbaseWallet, metaMask } from "wagmi/connectors";
+import { coinbaseWallet } from "wagmi/connectors";
 
 export const config = createConfig({
   chains: [baseSepolia],

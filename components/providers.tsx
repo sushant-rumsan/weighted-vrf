@@ -5,7 +5,6 @@ import { WagmiProvider } from "wagmi";
 import { ConnectKitProvider } from "connectkit";
 import { config } from "@/lib/wagmi.config";
 import { useState } from "react";
-import { EnforceChain } from "./enforce-chain";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
