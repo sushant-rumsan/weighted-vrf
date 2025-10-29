@@ -1,12 +1,12 @@
 "use client";
 
-import { createConfig, http } from "wagmi";
+import { createConfig, http, injected } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
-import { metaMask } from "wagmi/connectors";
+import { coinbaseWallet, metaMask } from "wagmi/connectors";
 
 export const config = createConfig({
   chains: [baseSepolia],
-  connectors: [metaMask()],
+  connectors: [coinbaseWallet()],
   transports: {
     [baseSepolia.id]: http(
       "https://base-sepolia.g.alchemy.com/v2/T0PE-HxhWOEH0eUNTcUOFgPQJiQzL6uf"
