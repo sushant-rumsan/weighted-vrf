@@ -51,62 +51,104 @@ contract OfficeBillLottery {
         emit EmployeeAdded(_emp, _name);
     }
 
-    function setActive(address[] calldata _emps, bool _status) external onlyModerator {
-        for (uint256 i = 0; i < _emps.length; i++) {
-            address empAddr = _emps[i];
-            require(employees[empAddr].exists, "Employee not found");
-            employees[empAddr].activeToday = _status;
-            emit EmployeeStatusUpdated(empAddr, _status);
+function setActive(address[] calldata _emps) external {
+    // Step 1: Deactivate all employees first
+    for (uint256 i = 0; i < employeeList.length; i++) {
+        address empAddr = employeeList[i];
+        if (employees[empAddr].activeToday) {
+            employees[empAddr].activeToday = false;
+            emit EmployeeStatusUpdated(empAddr, false);
         }
     }
+
+    // Step 2: Activate only the provided ones
+    for (uint256 i = 0; i < _emps.length; i++) {
+        address empAddr = _emps[i];
+        require(employees[empAddr].exists, "Employee not found");
+        employees[empAddr].activeToday = true;
+        emit EmployeeStatusUpdated(empAddr, true);
+    }
+}
+
 
     // ----------------------------
     //  Lottery logic
     // ----------------------------
-    function runLottery() external returns (address winner) {
-        // require(block.number > lastDrawBlock, "Already drawn today"); // commented for testing
+function runLottery() external returns (address winner) {
+    // ----------------------------
+    //  Prevent multiple draws per day (Nepal time)
+    // ----------------------------
+    uint256 currentDay = (block.timestamp + 20700) / 86400; // Nepal UTC+5:45
+    require(currentDay != lastDrawBlock, "Already drawn today");
 
-        // Pause on weekends
-        uint8 dayOfWeek = uint8((block.timestamp / 86400 + 4) % 7);
-        require(dayOfWeek != 6 && dayOfWeek != 0, "Lottery paused on weekends");
+    // Pause on weekends (Nepal time)
+    uint8 dayOfWeek = uint8((currentDay + 4) % 7); // 0 = Sunday, 6 = Saturday
+    require(dayOfWeek != 6 && dayOfWeek != 0, "Lottery paused on weekends");
 
-        uint256 random = rngContract.getRandomNumber();
+    // ----------------------------
+    //  Get random number from Chainlink RNG
+    // ----------------------------
+    uint256 random = rngContract.getRandomNumber();
 
-        uint256 totalWeight = 0;
-        for (uint256 i = 0; i < employeeList.length; i++) {
-            Employee storage emp = employees[employeeList[i]];
-            if (!emp.activeToday) continue;
-
-            if (emp.lastPaidDay == block.number - 1) {
-                emp.weight = 0;
-            } else {
-                emp.weight += 1;
-            }
-            totalWeight += emp.weight;
-        }
-
-        require(totalWeight > 0, "No active employees today");
-
-        uint256 winningPoint = random % totalWeight;
-        uint256 counter = 0;
-
-        for (uint256 i = 0; i < employeeList.length; i++) {
-            Employee storage emp = employees[employeeList[i]];
-            if (!emp.activeToday || emp.weight == 0) continue;
-
-            counter += emp.weight;
-            if (winningPoint < counter) {
-                emp.weight = 0;
-                emp.lastPaidDay = block.number;
-                lastDrawBlock = block.number;
-                lastWinner = employeeList[i];
-                emit WinnerSelected(employeeList[i], block.timestamp);
-                return employeeList[i];
-            }
-        }
-
-        revert("No winner found");
+    // ----------------------------
+    //  Calculate total weight (sum of all active employees)
+    // ----------------------------
+    uint256 totalWeight = 0;
+    for (uint256 i = 0; i < employeeList.length; i++) {
+        Employee storage emp = employees[employeeList[i]];
+        if (!emp.activeToday) continue;
+        totalWeight += emp.weight;
     }
+
+    // Handle first draw or all-zero-weight case
+    if (totalWeight == 0) {
+        for (uint256 i = 0; i < employeeList.length; i++) {
+            Employee storage emp = employees[employeeList[i]];
+            if (emp.activeToday) {
+                emp.weight = 1;
+                totalWeight += 1;
+            }
+        }
+    }
+
+    require(totalWeight > 0, "No active employees today");
+
+    // ----------------------------
+    //  Weighted random selection
+    // ----------------------------
+    uint256 winningPoint = random % totalWeight;
+    uint256 counter = 0;
+
+    for (uint256 i = 0; i < employeeList.length; i++) {
+        Employee storage emp = employees[employeeList[i]];
+        if (!emp.activeToday || emp.weight == 0) continue;
+
+        counter += emp.weight;
+        if (winningPoint < counter) {
+            // 🎯 Found the winner
+            emp.weight = 0; // reset winner's weight
+            emp.lastPaidDay = block.number;
+            lastWinner = employeeList[i];
+            lastDrawBlock = currentDay; // store current day
+            emit WinnerSelected(employeeList[i], block.timestamp);
+            winner = employeeList[i];
+            break;
+        }
+    }
+
+    // ----------------------------
+    //  Increment weight for other active employees
+    // ----------------------------
+    for (uint256 i = 0; i < employeeList.length; i++) {
+        Employee storage emp = employees[employeeList[i]];
+        if (!emp.activeToday || employeeList[i] == lastWinner) continue;
+        emp.weight += 1;
+    }
+
+    return winner;
+}
+
+
 
     // ----------------------------
     //  View functions

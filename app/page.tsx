@@ -156,7 +156,6 @@ export default function HomePage() {
   const [lotteryPhase, setLotteryPhase] = useState<
     "idle" | "requestingRandom" | "waiting" | "runningLottery" | "complete"
   >("idle");
-  const [currentFact, setCurrentFact] = useState("");
 
   // contractData is a tuple: [names: string[], weights: bigint[]]
   const employees = (contractData?.[0] || []).map(
