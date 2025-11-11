@@ -8,22 +8,27 @@ interface ISimpleRandomNumber {
 contract OfficeBillLottery {
     struct Employee {
         string name;
-        uint256 weight;      // probability weight (integer, not %)
+        uint256 weight;      
         bool activeToday;
         bool exists;
-        uint256 lastPaidDay; // block number of last payment
+        uint256 lastPaidDay; 
     }
 
     mapping(address => Employee) public employees;
     address[] public employeeList;
+
     address public moderator;
     ISimpleRandomNumber public rngContract;
-    uint256 public lastDrawBlock;
-    address public lastWinner;
+
+    uint256 public lastDrawDay;       
+    address public lastWinner;        
+    address public lastLotteryRunner; 
+    uint256 public lastSetActiveDay;  
 
     event EmployeeAdded(address indexed employee, string name);
-    event WinnerSelected(address indexed winner, uint256 day);
+    event WinnerSelected(address indexed winner, uint256 timestamp, address indexed runner);
     event EmployeeStatusUpdated(address indexed employee, bool active);
+    event EmployeesDeactivatedAfterDraw(uint256 day);
 
     modifier onlyModerator() {
         require(msg.sender == moderator, "Not moderator");
@@ -51,104 +56,105 @@ contract OfficeBillLottery {
         emit EmployeeAdded(_emp, _name);
     }
 
-function setActive(address[] calldata _emps) external {
-    // Step 1: Deactivate all employees first
-    for (uint256 i = 0; i < employeeList.length; i++) {
-        address empAddr = employeeList[i];
-        if (employees[empAddr].activeToday) {
-            employees[empAddr].activeToday = false;
-            emit EmployeeStatusUpdated(empAddr, false);
+    function setActive(address[] calldata _emps) external onlyModerator {
+        uint256 currentDay = (block.timestamp + 20700) / 86400; // Nepal timezone UTC+5:45
+        require(currentDay != lastDrawDay, "Cannot activate after draw today");
+        require(currentDay != lastSetActiveDay, "Already set active today");
+
+        // Step 1: Deactivate all
+        for (uint256 i = 0; i < employeeList.length; i++) {
+            address empAddr = employeeList[i];
+            if (employees[empAddr].activeToday) {
+                employees[empAddr].activeToday = false;
+                emit EmployeeStatusUpdated(empAddr, false);
+            }
         }
-    }
 
-    // Step 2: Activate only the provided ones
-    for (uint256 i = 0; i < _emps.length; i++) {
-        address empAddr = _emps[i];
-        require(employees[empAddr].exists, "Employee not found");
-        employees[empAddr].activeToday = true;
-        emit EmployeeStatusUpdated(empAddr, true);
-    }
-}
+        // Step 2: Activate selected
+        for (uint256 i = 0; i < _emps.length; i++) {
+            address empAddr = _emps[i];
+            require(employees[empAddr].exists, "Employee not found");
+            employees[empAddr].activeToday = true;
+            emit EmployeeStatusUpdated(empAddr, true);
+        }
 
+        lastSetActiveDay = currentDay;
+    }
 
     // ----------------------------
     //  Lottery logic
     // ----------------------------
-function runLottery() external returns (address winner) {
-    // ----------------------------
-    //  Prevent multiple draws per day (Nepal time)
-    // ----------------------------
-    uint256 currentDay = (block.timestamp + 20700) / 86400; // Nepal UTC+5:45
-    require(currentDay != lastDrawBlock, "Already drawn today");
+    function runLottery() external returns (address winner) {
+        uint256 currentDay = (block.timestamp + 20700) / 86400; // Nepal time
+        require(currentDay != lastDrawDay, "Already drawn today");
 
-    // Pause on weekends (Nepal time)
-    uint8 dayOfWeek = uint8((currentDay + 4) % 7); // 0 = Sunday, 6 = Saturday
-    require(dayOfWeek != 6 && dayOfWeek != 0, "Lottery paused on weekends");
+        uint8 dayOfWeek = uint8((currentDay + 4) % 7);
+        require(dayOfWeek != 6 && dayOfWeek != 0, "Lottery paused on weekends");
 
-    // ----------------------------
-    //  Get random number from Chainlink RNG
-    // ----------------------------
-    uint256 random = rngContract.getRandomNumber();
+        uint256 random = rngContract.getRandomNumber();
 
-    // ----------------------------
-    //  Calculate total weight (sum of all active employees)
-    // ----------------------------
-    uint256 totalWeight = 0;
-    for (uint256 i = 0; i < employeeList.length; i++) {
-        Employee storage emp = employees[employeeList[i]];
-        if (!emp.activeToday) continue;
-        totalWeight += emp.weight;
-    }
+        // Calculate total weight
+        uint256 totalWeight = 0;
+        for (uint256 i = 0; i < employeeList.length; i++) {
+            Employee storage emp = employees[employeeList[i]];
+            if (!emp.activeToday) continue;
+            totalWeight += emp.weight;
+        }
 
-    // Handle first draw or all-zero-weight case
-    if (totalWeight == 0) {
+        // Handle all-zero-weight case
+        if (totalWeight == 0) {
+            for (uint256 i = 0; i < employeeList.length; i++) {
+                Employee storage emp = employees[employeeList[i]];
+                if (emp.activeToday) {
+                    emp.weight = 1;
+                    totalWeight += 1;
+                }
+            }
+        }
+
+        require(totalWeight > 0, "No active employees today");
+
+        // Weighted random selection
+        uint256 winningPoint = random % totalWeight;
+        uint256 counter = 0;
+
+        for (uint256 i = 0; i < employeeList.length; i++) {
+            Employee storage emp = employees[employeeList[i]];
+            if (!emp.activeToday || emp.weight == 0) continue;
+
+            counter += emp.weight;
+            if (winningPoint < counter) {
+                emp.weight = 0;
+                emp.lastPaidDay = block.number;
+                lastWinner = employeeList[i];
+                lastDrawDay = currentDay;
+                lastLotteryRunner = msg.sender;
+
+                emit WinnerSelected(employeeList[i], block.timestamp, msg.sender);
+                winner = employeeList[i];
+                break;
+            }
+        }
+
+        // Increase weight of others
+        for (uint256 i = 0; i < employeeList.length; i++) {
+            Employee storage emp = employees[employeeList[i]];
+            if (!emp.activeToday || employeeList[i] == lastWinner) continue;
+            emp.weight += 1;
+        }
+
+        // 🔒 Deactivate all after draw
         for (uint256 i = 0; i < employeeList.length; i++) {
             Employee storage emp = employees[employeeList[i]];
             if (emp.activeToday) {
-                emp.weight = 1;
-                totalWeight += 1;
+                emp.activeToday = false;
+                emit EmployeeStatusUpdated(employeeList[i], false);
             }
         }
+
+        emit EmployeesDeactivatedAfterDraw(currentDay);
+        return winner;
     }
-
-    require(totalWeight > 0, "No active employees today");
-
-    // ----------------------------
-    //  Weighted random selection
-    // ----------------------------
-    uint256 winningPoint = random % totalWeight;
-    uint256 counter = 0;
-
-    for (uint256 i = 0; i < employeeList.length; i++) {
-        Employee storage emp = employees[employeeList[i]];
-        if (!emp.activeToday || emp.weight == 0) continue;
-
-        counter += emp.weight;
-        if (winningPoint < counter) {
-            // 🎯 Found the winner
-            emp.weight = 0; // reset winner's weight
-            emp.lastPaidDay = block.number;
-            lastWinner = employeeList[i];
-            lastDrawBlock = currentDay; // store current day
-            emit WinnerSelected(employeeList[i], block.timestamp);
-            winner = employeeList[i];
-            break;
-        }
-    }
-
-    // ----------------------------
-    //  Increment weight for other active employees
-    // ----------------------------
-    for (uint256 i = 0; i < employeeList.length; i++) {
-        Employee storage emp = employees[employeeList[i]];
-        if (!emp.activeToday || employeeList[i] == lastWinner) continue;
-        emp.weight += 1;
-    }
-
-    return winner;
-}
-
-
 
     // ----------------------------
     //  View functions
@@ -165,7 +171,6 @@ function runLottery() external returns (address winner) {
         return lastWinner;
     }
 
-    // ✅ New helper: get names & weights together
     function getEmployeeNamesAndWeights()
         external
         view
@@ -180,5 +185,22 @@ function runLottery() external returns (address winner) {
             names[i] = emp.name;
             weights[i] = emp.weight;
         }
+    }
+
+    // ----------------------------
+    //  Utility helpers
+    // ----------------------------
+    function getCurrentDay()
+        external
+        view
+        returns (uint256 nepalDayNumber, uint8 dayOfWeek)
+    {
+        nepalDayNumber = (block.timestamp + 20700) / 86400;
+        dayOfWeek = uint8((nepalDayNumber + 4) % 7);
+    }
+
+    function hasLotteryBeenDrawnToday() external view returns (bool) {
+        uint256 currentDay = (block.timestamp + 20700) / 86400;
+        return (currentDay == lastDrawDay);
     }
 }

@@ -11,16 +11,6 @@ import {
 
 export const officeLotteryAbi = [
   {
-    type: 'function',
-    inputs: [
-      { name: '_emp', internalType: 'address', type: 'address' },
-      { name: '_name', internalType: 'string', type: 'string' },
-    ],
-    name: 'addEmployee',
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
     type: 'constructor',
     inputs: [
       { name: '_rngContract', internalType: 'address', type: 'address' },
@@ -56,18 +46,12 @@ export const officeLotteryAbi = [
     name: 'EmployeeStatusUpdated',
   },
   {
-    type: 'function',
-    inputs: [],
-    name: 'runLottery',
-    outputs: [{ name: 'winner', internalType: 'address', type: 'address' }],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    inputs: [{ name: '_emps', internalType: 'address[]', type: 'address[]' }],
-    name: 'setActive',
-    outputs: [],
-    stateMutability: 'nonpayable',
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      { name: 'day', internalType: 'uint256', type: 'uint256', indexed: false },
+    ],
+    name: 'EmployeesDeactivatedAfterDraw',
   },
   {
     type: 'event',
@@ -79,9 +63,30 @@ export const officeLotteryAbi = [
         type: 'address',
         indexed: true,
       },
-      { name: 'day', internalType: 'uint256', type: 'uint256', indexed: false },
+      {
+        name: 'timestamp',
+        internalType: 'uint256',
+        type: 'uint256',
+        indexed: false,
+      },
+      {
+        name: 'runner',
+        internalType: 'address',
+        type: 'address',
+        indexed: true,
+      },
     ],
     name: 'WinnerSelected',
+  },
+  {
+    type: 'function',
+    inputs: [
+      { name: '_emp', internalType: 'address', type: 'address' },
+      { name: '_name', internalType: 'string', type: 'string' },
+    ],
+    name: 'addEmployee',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -100,6 +105,16 @@ export const officeLotteryAbi = [
       { name: 'activeToday', internalType: 'bool', type: 'bool' },
       { name: 'exists', internalType: 'bool', type: 'bool' },
       { name: 'lastPaidDay', internalType: 'uint256', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'getCurrentDay',
+    outputs: [
+      { name: 'nepalDayNumber', internalType: 'uint256', type: 'uint256' },
+      { name: 'dayOfWeek', internalType: 'uint8', type: 'uint8' },
     ],
     stateMutability: 'view',
   },
@@ -150,7 +165,28 @@ export const officeLotteryAbi = [
   {
     type: 'function',
     inputs: [],
-    name: 'lastDrawBlock',
+    name: 'hasLotteryBeenDrawnToday',
+    outputs: [{ name: '', internalType: 'bool', type: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'lastDrawDay',
+    outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'lastLotteryRunner',
+    outputs: [{ name: '', internalType: 'address', type: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'lastSetActiveDay',
     outputs: [{ name: '', internalType: 'uint256', type: 'uint256' }],
     stateMutability: 'view',
   },
@@ -180,6 +216,20 @@ export const officeLotteryAbi = [
       },
     ],
     stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    inputs: [],
+    name: 'runLottery',
+    outputs: [{ name: 'winner', internalType: 'address', type: 'address' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    inputs: [{ name: '_emps', internalType: 'address[]', type: 'address[]' }],
+    name: 'setActive',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
 ] as const
 
@@ -418,6 +468,15 @@ export const useReadOfficeLotteryEmployees =
   })
 
 /**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link officeLotteryAbi}__ and `functionName` set to `"getCurrentDay"`
+ */
+export const useReadOfficeLotteryGetCurrentDay =
+  /*#__PURE__*/ createUseReadContract({
+    abi: officeLotteryAbi,
+    functionName: 'getCurrentDay',
+  })
+
+/**
  * Wraps __{@link useReadContract}__ with `abi` set to __{@link officeLotteryAbi}__ and `functionName` set to `"getEmployee"`
  */
 export const useReadOfficeLotteryGetEmployee =
@@ -454,12 +513,39 @@ export const useReadOfficeLotteryGetLastWinner =
   })
 
 /**
- * Wraps __{@link useReadContract}__ with `abi` set to __{@link officeLotteryAbi}__ and `functionName` set to `"lastDrawBlock"`
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link officeLotteryAbi}__ and `functionName` set to `"hasLotteryBeenDrawnToday"`
  */
-export const useReadOfficeLotteryLastDrawBlock =
+export const useReadOfficeLotteryHasLotteryBeenDrawnToday =
   /*#__PURE__*/ createUseReadContract({
     abi: officeLotteryAbi,
-    functionName: 'lastDrawBlock',
+    functionName: 'hasLotteryBeenDrawnToday',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link officeLotteryAbi}__ and `functionName` set to `"lastDrawDay"`
+ */
+export const useReadOfficeLotteryLastDrawDay =
+  /*#__PURE__*/ createUseReadContract({
+    abi: officeLotteryAbi,
+    functionName: 'lastDrawDay',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link officeLotteryAbi}__ and `functionName` set to `"lastLotteryRunner"`
+ */
+export const useReadOfficeLotteryLastLotteryRunner =
+  /*#__PURE__*/ createUseReadContract({
+    abi: officeLotteryAbi,
+    functionName: 'lastLotteryRunner',
+  })
+
+/**
+ * Wraps __{@link useReadContract}__ with `abi` set to __{@link officeLotteryAbi}__ and `functionName` set to `"lastSetActiveDay"`
+ */
+export const useReadOfficeLotteryLastSetActiveDay =
+  /*#__PURE__*/ createUseReadContract({
+    abi: officeLotteryAbi,
+    functionName: 'lastSetActiveDay',
   })
 
 /**
@@ -579,6 +665,15 @@ export const useWatchOfficeLotteryEmployeeStatusUpdatedEvent =
   /*#__PURE__*/ createUseWatchContractEvent({
     abi: officeLotteryAbi,
     eventName: 'EmployeeStatusUpdated',
+  })
+
+/**
+ * Wraps __{@link useWatchContractEvent}__ with `abi` set to __{@link officeLotteryAbi}__ and `eventName` set to `"EmployeesDeactivatedAfterDraw"`
+ */
+export const useWatchOfficeLotteryEmployeesDeactivatedAfterDrawEvent =
+  /*#__PURE__*/ createUseWatchContractEvent({
+    abi: officeLotteryAbi,
+    eventName: 'EmployeesDeactivatedAfterDraw',
   })
 
 /**

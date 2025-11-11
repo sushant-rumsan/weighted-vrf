@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePublicClient, useWriteContract } from "wagmi";
+import { toast } from "sonner";
+import { BaseError } from "viem";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, TrendingUp } from "lucide-react";
@@ -8,10 +11,12 @@ import Link from "next/link";
 import { WalletConnection } from "@/components/wallet-connection-wagmi";
 import { CONTRACT_ADDRESSES } from "@/lib/constants";
 import {
+  officeLotteryAbi,
   useReadOfficeLotteryGetEmployeeNamesAndWeights,
   useReadOfficeLotteryGetEmployees,
   useReadOfficeLotteryGetLastWinner,
-  useWriteOfficeLotterySetActive,
+  useReadOfficeLotteryGetCurrentDay,
+  useReadOfficeLotteryHasLotteryBeenDrawnToday,
   useWriteOfficeLotteryRunLottery,
 } from "@/hooks/wagmi/contracts";
 import { useWriteRandomNumberGeneratorRequestRandomNumber } from "@/hooks/wagmi/contracts";
@@ -123,10 +128,34 @@ function SnakeAnimationLoader({
 }
 
 export default function HomePage() {
+  const publicClient = usePublicClient();
   const { data: contractData, isLoading } =
     useReadOfficeLotteryGetEmployeeNamesAndWeights({
       address: contractAddress,
     });
+
+  // On-chain day and draw status
+  const { data: currentDayData } = useReadOfficeLotteryGetCurrentDay({
+    address: contractAddress,
+  });
+  const { data: drawnTodayOnChain } =
+    useReadOfficeLotteryHasLotteryBeenDrawnToday({
+      address: contractAddress,
+    });
+  const dayOfWeekIndex = currentDayData?.[1]
+    ? Number(currentDayData[1])
+    : undefined;
+  const dayNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const dayName =
+    dayOfWeekIndex !== undefined ? dayNames[dayOfWeekIndex] : undefined;
 
   // Transform contract data to our UI format
   // contract returns: [names: string[], weights: uint256[]]
@@ -136,11 +165,8 @@ export default function HomePage() {
   });
 
   // Hooks for contract interactions
-  const {
-    writeContract: setActive,
-    isPending: isSettingActive,
-    isSuccess: isSetActiveSuccess,
-  } = useWriteOfficeLotterySetActive();
+  const { writeContractAsync } = useWriteContract();
+  const [isSettingActive, setIsSettingActive] = useState(false);
   const { writeContract: runLottery, isSuccess: isLotterySuccess } =
     useWriteOfficeLotteryRunLottery();
   const { writeContract: requestRandomNumber } =
@@ -194,6 +220,16 @@ export default function HomePage() {
     loadStatus();
   }, []);
 
+  const getErrorMessage = (err: unknown) => {
+    const baseErr = err as BaseError & {
+      shortMessage?: string;
+      message?: string;
+    };
+    if (baseErr?.shortMessage) return baseErr.shortMessage;
+    if (baseErr?.message) return baseErr.message;
+    return "Something went wrong";
+  };
+
   const handlePresenceSubmit = async (selectedIds: Set<number>) => {
     // Get addresses of selected employees
     const selectedAddresses = employees
@@ -202,22 +238,43 @@ export default function HomePage() {
 
     // Call setActive with all selected addresses
     if (selectedAddresses.length > 0) {
+      setIsSettingActive(true);
       try {
-        await setActive({
+        const txHash = await writeContractAsync({
+          abi: officeLotteryAbi,
           address: contractAddress,
+          functionName: "setActive",
           args: [selectedAddresses as `0x${string}`[]],
         });
+
+        if (!txHash || !publicClient) return;
+
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash: txHash,
+        });
+
+        if (receipt.status === "success") {
+          setPresentEmployees(selectedIds);
+          setHasCheckedInToday(true);
+          setShowPresenceSelection(false);
+          toast.success("Presence confirmed");
+        } else {
+          toast.error("Transaction reverted");
+        }
       } catch (error) {
-        console.error("Error setting active:", error);
+        toast.error(getErrorMessage(error));
         return; // Don't proceed if transaction fails
+      } finally {
+        setIsSettingActive(false);
       }
     }
-
-    setPresentEmployees(selectedIds);
-    // Wait for transaction success before proceeding
   };
 
   const handleLuckyDraw = async () => {
+    // if (drawnTodayOnChain === true) {
+    //   toast.error("Lottery already drawn for today");
+    //   return;
+    // }
     setIsDrawing(true);
     setLotteryPhase("requestingRandom");
 
@@ -234,7 +291,7 @@ export default function HomePage() {
         runLotteryFlow();
       }, 15000);
     } catch (error) {
-      console.error("Error in lottery flow:", error);
+      toast.error(getErrorMessage(error));
       setIsDrawing(false);
       setLotteryPhase("idle");
     }
@@ -249,19 +306,13 @@ export default function HomePage() {
 
       // Wait for transaction success (handled by isLotterySuccess)
     } catch (error) {
-      console.error("Error running lottery:", error);
+      toast.error(getErrorMessage(error));
       setIsDrawing(false);
       setLotteryPhase("idle");
     }
   };
 
-  // Handle setActive success
-  useEffect(() => {
-    if (isSetActiveSuccess) {
-      setHasCheckedInToday(true);
-      setShowPresenceSelection(false);
-    }
-  }, [isSetActiveSuccess]);
+  // Handle setActive success is now gated by explicit receipt check in handlePresenceSubmit
 
   // Handle lottery success
   useEffect(() => {
@@ -308,7 +359,7 @@ export default function HomePage() {
   // Don't redirect anywhere, just leave it there
 
   // Show presence selection if not checked in or if showing selection explicitly
-  if (!hasCheckedInToday || showPresenceSelection || !isSetActiveSuccess) {
+  if (!hasCheckedInToday || showPresenceSelection) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(120,119,198,0.3),transparent_50%)]"></div>
@@ -327,6 +378,12 @@ export default function HomePage() {
             <p className="text-white/80 font-medium">
               Select who&apos;s in office today 🐍
             </p>
+            <div className="mt-2 text-white/70 text-sm">
+              {dayName && <span className="mr-3">Today: {dayName}</span>}
+              {typeof drawnTodayOnChain === "boolean" && (
+                <span>Drawn today: {drawnTodayOnChain ? "Yes" : "No"}</span>
+              )}
+            </div>
           </div>
 
           <Card className="bg-white/5 border-white/10 backdrop-blur-2xl shadow-2xl rounded-3xl overflow-hidden">
@@ -471,6 +528,12 @@ export default function HomePage() {
               <p className="text-white/90 text-xl font-semibold">
                 who&apos;s getting bitten today? 🐍
               </p>
+              <div className="mt-3 text-white/70 text-sm">
+                {dayName && <span className="mr-3">Today: {dayName}</span>}
+                {typeof drawnTodayOnChain === "boolean" && (
+                  <span>Drawn today: {drawnTodayOnChain ? "Yes" : "No"}</span>
+                )}
+              </div>
             </div>
 
             {previousWinner && !hasDrawnToday && (
