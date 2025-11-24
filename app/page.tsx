@@ -334,7 +334,7 @@ export default function HomePage() {
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-6xl snake-rotate snake-glow">🐍</div>
-                  <span className="ml-3 text-white">Hissing around...</span>
+                  <span className="ml-3 text-white">Hissing around....</span>
                 </div>
               ) : employees.length === 0 ? (
                 <div className="text-center py-12">
