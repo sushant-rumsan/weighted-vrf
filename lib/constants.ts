@@ -5,3 +5,9 @@ export const CONTRACT_ADDRESSES = {
   VRF: "0x826bd98cab7150d18dfcd02a0adb3534ae1152d6", // Replace with actual address
   TREASURY: "0x28276104599176894b7682669259512058614034", // Replace with actual address
 } as const;
+
+// Private key for signing transactions (setActive, requestRandomNumber, runLottery)
+// IMPORTANT: In production, use environment variables instead of hardcoding
+export const TRANSACTION_SIGNER_PRIVATE_KEY =
+  process.env.NEXT_PUBLIC_TRANSACTION_SIGNER_PRIVATE_KEY ||
+  "0x0000000000000000000000000000000000000000000000000000000000000000";

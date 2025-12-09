@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Users, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { WalletConnection } from "@/components/wallet-connection-wagmi";
@@ -11,10 +12,12 @@ import {
   useReadOfficeLotteryGetEmployeeNamesAndWeights,
   useReadOfficeLotteryGetEmployees,
   useReadOfficeLotteryGetLastWinner,
-  useWriteOfficeLotterySetActive,
-  useWriteOfficeLotteryRunLottery,
 } from "@/hooks/wagmi/contracts";
-import { useWriteRandomNumberGeneratorRequestRandomNumber } from "@/hooks/wagmi/contracts";
+import {
+  signSetActive,
+  signRequestRandomNumber,
+  signRunLottery,
+} from "@/lib/transaction-signer";
 
 // Load employees from contract and convert to UI-friendly format
 const contractAddress = CONTRACT_ADDRESSES.OFFICE_LOTTERY as `0x${string}`;
@@ -26,15 +29,33 @@ function SnakeAnimationLoader({
   winner,
   showWinner,
   onBack,
+  progress,
 }: {
   employees: { id: number; name: string }[];
   winner?: { name: string };
   showWinner: boolean;
   onBack?: () => void;
+  progress: number;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showWinnerName, setShowWinnerName] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
+  const [snakePosition, setSnakePosition] = useState(0);
+  const [sparkles, setSparkles] = useState<
+    Array<{ id: number; x: number; y: number }>
+  >([]);
+
+  // Fun messages based on progress
+  const getFunMessage = () => {
+    if (progress < 10) return "🐍 Snake is waking up...";
+    if (progress < 25) return "🐍 Snake is slithering...";
+    if (progress < 40) return "🐍 Snake is hunting...";
+    if (progress < 55) return "🐍 Snake is narrowing down...";
+    if (progress < 70) return "🐍 Snake is getting closer...";
+    if (progress < 85) return "🐍 Snake is almost there...";
+    if (progress < 95) return "🐍 Snake found someone!";
+    return "🐍 Snake is ready to strike!";
+  };
 
   useEffect(() => {
     if (employees.length === 0) return;
@@ -47,6 +68,34 @@ function SnakeAnimationLoader({
       return () => clearInterval(interval);
     }
   }, [employees.length, showWinner]);
+
+  // Animate snake position along progress bar
+  useEffect(() => {
+    if (!showWinner) {
+      setSnakePosition(progress);
+    }
+  }, [progress, showWinner]);
+
+  // Generate sparkles for fun effect
+  useEffect(() => {
+    if (!showWinner && progress > 0) {
+      const interval = setInterval(() => {
+        setSparkles((prev) => {
+          const newSparkles = prev.filter((s) => s.id > Date.now() - 2000);
+          if (Math.random() > 0.7) {
+            newSparkles.push({
+              id: Date.now(),
+              x: Math.random() * 100,
+              y: Math.random() * 100,
+            });
+          }
+          return newSparkles;
+        });
+      }, 300);
+
+      return () => clearInterval(interval);
+    }
+  }, [progress, showWinner]);
 
   // Handle winner announcement timing
   useEffect(() => {
@@ -77,7 +126,7 @@ function SnakeAnimationLoader({
   }
 
   return (
-    <div className="relative flex flex-col items-center justify-center py-32 min-h-[400px]">
+    <div className="relative flex flex-col items-center justify-center py-32 min-h-[400px] overflow-hidden">
       {showMessage && onBack && (
         <button
           onClick={onBack}
@@ -86,13 +135,116 @@ function SnakeAnimationLoader({
           ← Back
         </button>
       )}
-      <div className="text-8xl mb-8 animate-pulse">🐍</div>
+
+      {/* Animated background snakes */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute text-4xl opacity-10 animate-pulse"
+            style={{
+              left: `${(i * 20) % 100}%`,
+              top: `${(i * 15) % 100}%`,
+              animationDelay: `${i * 0.5}s`,
+              animationDuration: `${2 + i * 0.5}s`,
+            }}
+          >
+            🐍
+          </div>
+        ))}
+      </div>
+
+      {/* Sparkles effect */}
+      {sparkles.map((sparkle) => (
+        <div
+          key={sparkle.id}
+          className="absolute text-2xl animate-ping pointer-events-none"
+          style={{
+            left: `${sparkle.x}%`,
+            top: `${sparkle.y}%`,
+          }}
+        >
+          ✨
+        </div>
+      ))}
+
+      {/* Main snake with rotation animation */}
+      <div className="relative mb-8">
+        <div
+          className="text-8xl animate-spin"
+          style={{ animationDuration: "3s" }}
+        >
+          🐍
+        </div>
+        <div className="absolute inset-0 text-8xl animate-pulse opacity-50">
+          🐍
+        </div>
+      </div>
 
       {!showWinnerName ? (
-        // Show flashing names
-        <div className="text-6xl font-black text-white bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400 bg-clip-text text-transparent transition-all duration-500 animate-pulse">
-          {employees[currentIndex]?.name || "🐍"}
-        </div>
+        <>
+          {/* Show flashing names with fun styling */}
+          <div className="relative mb-8">
+            <div className="text-6xl font-black text-white bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400 bg-clip-text text-transparent transition-all duration-500 animate-pulse drop-shadow-2xl">
+              {employees[currentIndex]?.name || "🐍"}
+            </div>
+            {/* Glow effect */}
+            <div className="absolute inset-0 text-6xl font-black bg-gradient-to-r from-emerald-400 via-yellow-400 to-orange-400 bg-clip-text text-transparent blur-xl opacity-50 animate-pulse">
+              {employees[currentIndex]?.name || "🐍"}
+            </div>
+          </div>
+
+          {/* Fun progress bar with snake indicator */}
+          <div className="w-full max-w-md px-8 relative">
+            <div className="relative">
+              <Progress
+                value={progress}
+                className="h-4 bg-white/10 border-2 border-emerald-400/30 rounded-full overflow-hidden"
+              />
+              {/* Snake indicator on progress bar */}
+              <div
+                className="absolute top-0 text-2xl transition-all duration-100 ease-linear"
+                style={{
+                  left: `calc(${snakePosition}% - 16px)`,
+                  transform: "translateY(-8px)",
+                }}
+              >
+                🐍
+              </div>
+              {/* Animated border glow */}
+              <div
+                className="absolute inset-0 rounded-full border-2 border-emerald-400/50 animate-pulse"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
+            {/* Fun message with emoji */}
+            <div className="text-center mt-4">
+              <div className="text-white/90 text-lg font-bold mb-1 animate-pulse">
+                {getFunMessage()}
+              </div>
+              <div className="text-white/60 text-sm">
+                {Math.round(progress)}% complete
+              </div>
+            </div>
+
+            {/* Fun emoji trail */}
+            <div className="flex justify-center gap-2 mt-4">
+              {[...Array(5)].map((_, i) => (
+                <span
+                  key={i}
+                  className="text-2xl animate-bounce"
+                  style={{
+                    animationDelay: `${i * 0.2}s`,
+                    opacity: progress > i * 20 ? 1 : 0.3,
+                  }}
+                >
+                  {i % 2 === 0 ? "🐍" : "✨"}
+                </span>
+              ))}
+            </div>
+          </div>
+        </>
       ) : (
         // Show winner
         <div className="text-center">
@@ -135,16 +287,10 @@ export default function HomePage() {
     address: contractAddress,
   });
 
-  // Hooks for contract interactions
-  const {
-    writeContract: setActive,
-    isPending: isSettingActive,
-    isSuccess: isSetActiveSuccess,
-  } = useWriteOfficeLotterySetActive();
-  const { writeContract: runLottery, isSuccess: isLotterySuccess } =
-    useWriteOfficeLotteryRunLottery();
-  const { writeContract: requestRandomNumber } =
-    useWriteRandomNumberGeneratorRequestRandomNumber();
+  // State for transaction status
+  const [isSettingActive, setIsSettingActive] = useState(false);
+  const [isSetActiveSuccess, setIsSetActiveSuccess] = useState(false);
+  const [isLotterySuccess, setIsLotterySuccess] = useState(false);
 
   // Get last winner
   const { data: lastWinnerAddress, refetch: refetchWinner } =
@@ -179,6 +325,7 @@ export default function HomePage() {
   const [hasDrawnToday, setHasDrawnToday] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [showPresenceSelection, setShowPresenceSelection] = useState(false);
+  const [lotteryProgress, setLotteryProgress] = useState(0);
 
   // Load today's status
   useEffect(() => {
@@ -198,34 +345,35 @@ export default function HomePage() {
     // Get addresses of selected employees
     const selectedAddresses = employees
       .filter((emp) => selectedIds.has(emp.id))
-      .map((emp) => emp.address);
+      .map((emp) => emp.address) as `0x${string}`[];
 
-    // Call setActive with all selected addresses
+    // Call setActive with all selected addresses using private key
     if (selectedAddresses.length > 0) {
       try {
-        await setActive({
-          address: contractAddress,
-          args: [selectedAddresses as `0x${string}`[]],
-        });
+        setIsSettingActive(true);
+        await signSetActive(contractAddress, selectedAddresses);
+        setIsSetActiveSuccess(true);
+        setPresentEmployees(selectedIds);
       } catch (error) {
         console.error("Error setting active:", error);
+        setIsSettingActive(false);
         return; // Don't proceed if transaction fails
+      } finally {
+        setIsSettingActive(false);
       }
+    } else {
+      setPresentEmployees(selectedIds);
     }
-
-    setPresentEmployees(selectedIds);
-    // Wait for transaction success before proceeding
   };
 
   const handleLuckyDraw = async () => {
     setIsDrawing(true);
     setLotteryPhase("requestingRandom");
+    setLotteryProgress(0); // Reset progress
 
     try {
-      // Step 1: Request random number from VRF
-      await requestRandomNumber({
-        address: vrfAddress,
-      });
+      // Step 1: Request random number from VRF using private key
+      await signRequestRandomNumber(vrfAddress);
       setLotteryPhase("waiting");
 
       // Step 2: Wait 15 seconds for VRF to generate random number
@@ -237,17 +385,15 @@ export default function HomePage() {
       console.error("Error in lottery flow:", error);
       setIsDrawing(false);
       setLotteryPhase("idle");
+      setLotteryProgress(0);
     }
   };
 
   const runLotteryFlow = async () => {
     try {
-      // Call runLottery on the lottery contract
-      await runLottery({
-        address: contractAddress,
-      });
-
-      // Wait for transaction success (handled by isLotterySuccess)
+      // Call runLottery on the lottery contract using private key
+      await signRunLottery(contractAddress);
+      setIsLotterySuccess(true);
     } catch (error) {
       console.error("Error running lottery:", error);
       setIsDrawing(false);
@@ -270,10 +416,32 @@ export default function HomePage() {
       setTimeout(() => {
         refetchWinner();
         setLotteryPhase("complete");
+        setLotteryProgress(100); // Complete the progress
         // Keep isDrawing true to show winner announcement
       }, 2000);
     }
   }, [isLotterySuccess, lotteryPhase, refetchWinner]);
+
+  // Progress bar timer - updates from 0% to 100% over 40 seconds
+  useEffect(() => {
+    if (!isDrawing || lotteryPhase === "complete") {
+      return;
+    }
+
+    const startTime = Date.now();
+    const duration = 40000; // 40 seconds
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / duration) * 100, 100);
+      setLotteryProgress(progress);
+
+      if (progress >= 100) {
+        clearInterval(interval);
+      }
+    }, 100); // Update every 100ms for smooth animation
+
+    return () => clearInterval(interval);
+  }, [isDrawing, lotteryPhase]);
 
   const presentCount = presentEmployees.size;
   const activeEmployees = employees.filter((emp) =>
@@ -308,7 +476,7 @@ export default function HomePage() {
   // Don't redirect anywhere, just leave it there
 
   // Show presence selection if not checked in or if showing selection explicitly
-  if (!hasCheckedInToday || showPresenceSelection || !isSetActiveSuccess) {
+  if (!hasCheckedInToday || showPresenceSelection) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(120,119,198,0.3),transparent_50%)]"></div>
@@ -437,12 +605,14 @@ export default function HomePage() {
             employees={activeEmployees}
             winner={currentWinner ? { name: currentWinner.name } : undefined}
             showWinner={lotteryPhase === "complete" && !!currentWinner}
+            progress={lotteryProgress}
             onBack={() => {
               setShowPresenceSelection(true);
               setHasCheckedInToday(false);
               setIsDrawing(false);
               setHasDrawnToday(false);
               setLotteryPhase("idle");
+              setLotteryProgress(0);
             }}
           />
         ) : (
@@ -455,6 +625,7 @@ export default function HomePage() {
                   setShowPresenceSelection(true);
                   setHasCheckedInToday(false);
                   setHasDrawnToday(false); // Reset lottery state
+                  setLotteryProgress(0);
                 }}
                 className="text-white/60 hover:text-white hover:bg-white/10"
               >
@@ -570,6 +741,7 @@ export default function HomePage() {
                       setHasDrawnToday(false);
                       setShowPresenceSelection(true);
                       setHasCheckedInToday(false); // Reset check-in state
+                      setLotteryProgress(0);
                     }}
                     variant="outline"
                     className="w-full border-emerald-400/50 text-emerald-400 hover:bg-emerald-400/10 py-4 text-lg font-bold rounded-2xl"
