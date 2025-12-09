@@ -49,18 +49,11 @@ function SnakeAnimationLoader({
   // Nepali messages
   const nepaliMessages = [
     "Kasle tirxa ta paisa",
-    "{name} le tirxa hola ta",
+    "{name} le tirxa hola",
     "{name} le tirxu po vanxa ta",
     "Malai pani tirna man xa: {name}",
     "Xyaa ma tirxu k: {name}",
   ];
-
-  // Get random victim name
-  const getRandomVictimName = () => {
-    if (employees.length === 0) return "Koi";
-    const randomIndex = Math.floor(Math.random() * employees.length);
-    return employees[randomIndex]?.name || "Koi";
-  };
 
   // Get random message with random victim name
   const getRandomMessage = useCallback(() => {
