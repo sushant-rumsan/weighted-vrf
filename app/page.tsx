@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -44,18 +44,37 @@ function SnakeAnimationLoader({
   const [sparkles, setSparkles] = useState<
     Array<{ id: number; x: number; y: number }>
   >([]);
+  const [currentMessage, setCurrentMessage] = useState("Kasle tirxa ta paisa");
 
-  // Fun messages based on progress
-  const getFunMessage = () => {
-    if (progress < 10) return "🐍 Snake is waking up...";
-    if (progress < 25) return "🐍 Snake is slithering...";
-    if (progress < 40) return "🐍 Snake is hunting...";
-    if (progress < 55) return "🐍 Snake is narrowing down...";
-    if (progress < 70) return "🐍 Snake is getting closer...";
-    if (progress < 85) return "🐍 Snake is almost there...";
-    if (progress < 95) return "🐍 Snake found someone!";
-    return "🐍 Snake is ready to strike!";
+  // Nepali messages
+  const nepaliMessages = [
+    "Kasle tirxa ta paisa",
+    "{name} le tirxa hola ta",
+    "{name} le tirxu po vanxa ta",
+    "Malai pani tirna man xa: {name}",
+    "Xyaa ma tirxu k: {name}",
+  ];
+
+  // Get random victim name
+  const getRandomVictimName = () => {
+    if (employees.length === 0) return "Koi";
+    const randomIndex = Math.floor(Math.random() * employees.length);
+    return employees[randomIndex]?.name || "Koi";
   };
+
+  // Get random message with random victim name
+  const getRandomMessage = useCallback(() => {
+    const randomMessageIndex = Math.floor(
+      Math.random() * nepaliMessages.length
+    );
+    const messageTemplate = nepaliMessages[randomMessageIndex];
+    if (employees.length === 0) {
+      return messageTemplate.replace("{name}", "Koi");
+    }
+    const randomIndex = Math.floor(Math.random() * employees.length);
+    const randomName = employees[randomIndex]?.name || "Koi";
+    return messageTemplate.replace("{name}", randomName);
+  }, [employees]);
 
   useEffect(() => {
     if (employees.length === 0) return;
@@ -68,6 +87,18 @@ function SnakeAnimationLoader({
       return () => clearInterval(interval);
     }
   }, [employees.length, showWinner]);
+
+  // Update message randomly
+  useEffect(() => {
+    setCurrentMessage(getRandomMessage());
+    if (!showWinner) {
+      const interval = setInterval(() => {
+        setCurrentMessage(getRandomMessage());
+      }, 2000); // Change message every 8 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [showWinner]);
 
   // Animate snake position along progress bar
   useEffect(() => {
@@ -221,7 +252,7 @@ function SnakeAnimationLoader({
             {/* Fun message with emoji */}
             <div className="text-center mt-4">
               <div className="text-white/90 text-lg font-bold mb-1 animate-pulse">
-                {getFunMessage()}
+                {currentMessage || "Kasle tirxa ta paisa"}
               </div>
               <div className="text-white/60 text-sm">
                 {Math.round(progress)}% complete
